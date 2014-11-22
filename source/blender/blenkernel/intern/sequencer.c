@@ -1507,6 +1507,7 @@ static bool seq_proxy_get_fname(Sequence *seq, int cfra, int render_size, char *
 {
 	int frameno;
 	char dir[PROXY_MAXFILE];
+	/* // decide what to do for multiview */
 
 	if (!seq->strip->proxy) {
 		return false;
@@ -1661,18 +1662,30 @@ static void seq_proxy_build_frame(const SeqRenderData *context, Sequence *seq, i
 	IMB_freeImBuf(ibuf);
 }
 
-SeqIndexBuildContext *BKE_sequencer_proxy_rebuild_context(Main *bmain, Scene *scene, Sequence *seq)
+void BKE_sequencer_proxy_rebuild_context(Main *bmain, Scene *scene, Sequence *seq, ListBase *queue)
 {
-	SeqIndexBuildContext *context;
+	SeqIndexBuildContexts **context;
 	Sequence *nseq;
+	LinkData *link;
+	size_t totfiles;
 
 	if (!seq->strip || !seq->strip->proxy) {
-		return NULL;
+		return;
 	}
 
 	if (!(seq->flag & SEQ_USE_PROXY)) {
-		return NULL;
+		return;
 	}
+
+	//see if for images we need that too, probably not
+	//start with images proxies first, it may be simpler
+	//
+	//get totfiles
+	//callocn context for all totfiles
+	//run the IMB_anim_idnex_rebuild_context for all the contexts)
+	//BLI_addtail them all
+	//we probably need to solve the naming issue by the way
+
 
 	context = MEM_callocN(sizeof(SeqIndexBuildContext), "seq proxy rebuild context");
 
@@ -1696,11 +1709,16 @@ SeqIndexBuildContext *BKE_sequencer_proxy_rebuild_context(Main *bmain, Scene *sc
 			if (sanim->anim) {
 				context->index_context = IMB_anim_index_rebuild_context(sanim->anim,
 				        context->tc_flags, context->size_flags, context->quality);
+
+				link = BLI_genericNodeN(context);
+				BLI_addtail(queue, link);
 			}
 		}
 	}
-
-	return context;
+	else {
+		link = BLI_genericNodeN(context);
+		BLI_addtail(queue, link);
+	}
 }
 
 void BKE_sequencer_proxy_rebuild(SeqIndexBuildContext *context, short *stop, short *do_update, float *progress)
@@ -1736,6 +1754,7 @@ void BKE_sequencer_proxy_rebuild(SeqIndexBuildContext *context, short *stop, sho
 	render_context.skip_cache = true;
 	render_context.is_proxy_render = true;
 
+	/////for view in views:
 	for (cfra = seq->startdisp + seq->startstill;  cfra < seq->enddisp - seq->endstill; cfra++) {
 		if (context->size_flags & IMB_PROXY_25) {
 			seq_proxy_build_frame(&render_context, seq, cfra, 25);

@@ -175,8 +175,6 @@ static void seq_proxy_build_job(const bContext *C)
 	Scene *scene = CTX_data_scene(C);
 	Editing *ed = BKE_sequencer_editing_get(scene, false);
 	ScrArea *sa = CTX_wm_area(C);
-	struct SeqIndexBuildContext *context;
-	LinkData *link;
 	Sequence *seq;
 
 	wm_job = WM_jobs_get(CTX_wm_manager(C), CTX_wm_window(C), sa, "Building Proxies",
@@ -198,9 +196,7 @@ static void seq_proxy_build_job(const bContext *C)
 	SEQP_BEGIN (ed, seq)
 	{
 		if ((seq->flag & SELECT)) {
-			context = BKE_sequencer_proxy_rebuild_context(pj->main, pj->scene, seq);
-			link = BLI_genericNodeN(context);
-			BLI_addtail(&pj->queue, link);
+			BKE_sequencer_proxy_rebuild_context(pj->main, pj->scene, seq, &pj->queue);
 		}
 	}
 	SEQ_END
